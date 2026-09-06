@@ -17,8 +17,9 @@ elif [ "$#" -ne 0 ]; then
 fi
 
 init_die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+init_has_command() { type "$1" >/dev/null 2>&1; }
 init_require() {
-    for init_tool do command -v "$init_tool" >/dev/null 2>&1 || init_die "Missing dependency: $init_tool"; done
+    for init_tool do init_has_command "$init_tool" || init_die "Missing dependency: $init_tool"; done
 }
 init_ask() (
     printf '%s [%s]: ' "$1" "$2" >&2
@@ -28,7 +29,7 @@ init_ask() (
 init_secret() {
     init_label=$1
     init_has_old=$2
-    if [ -t 0 ] && command -v stty >/dev/null 2>&1; then
+    if [ -t 0 ] && init_has_command stty; then
         printf '%s%s: ' "$init_label" "$( [ "$init_has_old" = yes ] && printf '（回车保留现有值）' )" >&2
         init_old_stty=$(stty -g 2>/dev/null) || init_old_stty=
         [ -z "$init_old_stty" ] || stty -echo

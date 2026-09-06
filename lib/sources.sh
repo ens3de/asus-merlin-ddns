@@ -6,12 +6,12 @@ normalize_address() (
 )
 interface_addresses() (
     family=$1; interface=$2
-    if command -v ip >/dev/null 2>&1; then
+    if has_command ip; then
         if [ "$family" = A ]; then flag=-4; else flag=-6; fi
         raw=$(ip "$flag" -o addr show dev "$interface" scope global 2>/dev/null) || {
             log error "Unable to read interface $interface"; exit 1;
         }
-    elif command -v ifconfig >/dev/null 2>&1; then
+    elif has_command ifconfig; then
         native=$(ifconfig "$interface" 2>/dev/null) || {
             log error "Unable to read interface $interface"; exit 1;
         }
@@ -38,7 +38,7 @@ interface_addresses() (
 # the selected interface afresh, so the displayed address is never persisted.
 available_interface_addresses() (
     family=$1
-    if command -v ip >/dev/null 2>&1; then
+    if has_command ip; then
         if [ "$family" = A ]; then flag=-4; else flag=-6; fi
         raw=$(ip "$flag" -o addr show scope global 2>/dev/null) || {
             log error 'Unable to enumerate network interfaces'; exit 1;
@@ -49,7 +49,7 @@ available_interface_addresses() (
                   print iface "\t" $(i+1); break
               }
             }')
-    elif command -v ifconfig >/dev/null 2>&1; then
+    elif has_command ifconfig; then
         candidates=$(for interface in $(ifconfig -l 2>/dev/null); do
             interface_addresses "$family" "$interface" 2>/dev/null |
                 while IFS= read -r cidr; do

@@ -26,9 +26,9 @@ tests/                          完全离线的模拟测试
 先在路由器检查依赖；本项目不自动安装软件：
 
 ```sh
-command -v jq
+type jq
 jq --version
-command -v curl
+type curl
 ip -6 -o addr show scope global
 ```
 

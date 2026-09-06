@@ -1,12 +1,13 @@
 # Helpers with scratch variables use subshells to avoid leaking POSIX sh globals.
 # Only load_settings intentionally sets shared configuration variables.
+has_command() { type "$1" >/dev/null 2>&1; }
 log() (
     level=$1; shift
     case "${LOG_LEVEL:-info}:$level" in error:info|error:debug|info:debug) exit 0 ;; esac
     printf '%s [%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$level" "$*" >&2
     if [ -n "${LOG_FILE:-}" ]; then
         printf '%s [%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$level" "$*" >> "$LOG_FILE"
-    elif command -v logger >/dev/null 2>&1; then
+    elif has_command logger; then
         logger -t "${LOG_TAG:-cloudflare-ddns}" "$*" 2>/dev/null || :
     fi
 )
@@ -18,7 +19,7 @@ ensure_entware_path() {
     export PATH
 }
 require_tools() (
-    for tool do command -v "$tool" >/dev/null 2>&1 || { log error "Missing dependency: $tool"; exit 1; }; done
+    for tool do has_command "$tool" || { log error "Missing dependency: $tool"; exit 1; }; done
 )
 valid_task_name() {
     # A task is a DNS name, and its exact canonical name is its filename.
