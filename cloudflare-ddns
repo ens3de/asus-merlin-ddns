@@ -5,6 +5,16 @@ umask 077
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 1
 LIB_DIR="$SCRIPT_DIR/lib"
 
+# Merlin's non-interactive DDNS hook commonly omits Entware from PATH.  Add
+# its standard directories when present so jq/curl installed under /opt work
+# the same way as they do in an interactive SSH session.
+for DDNS_ENTWARE_DIR in /opt/bin /opt/sbin; do
+    case ":${PATH:-}:" in *:"$DDNS_ENTWARE_DIR":*) ;; *)
+        [ ! -d "$DDNS_ENTWARE_DIR" ] || PATH="$DDNS_ENTWARE_DIR${PATH:+:$PATH}" ;;
+    esac
+done
+export PATH
+
 # One public entry point: a literal first argument of "config" enters the
 # configuration manager. Keeping the implementation in a module avoids mixing
 # interactive state with the non-interactive updater while shipping one CLI.

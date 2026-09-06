@@ -21,7 +21,7 @@ lib/config-manager.sh          交互配置管理模块（无独立入口）
 tests/                          完全离线的模拟测试
 ```
 
-运行依赖：POSIX `sh`、`jq >= 1.6`、`curl`、支持 `-o addr` 的 `ip`、`awk`、`grep -E`、`sed`、`cut`、`tr`、`cksum`、`mktemp` 和常规文件工具。无 Python、Docker、图形桌面、dialog 或 whiptail 运行依赖。Python 仅用于开发测试。
+运行依赖：POSIX `sh`、`jq >= 1.6`、`curl`、支持 `-o addr` 的 `ip`、`awk`、`grep -E`、`sed`、`cut`、`tr`、`cksum`、`mktemp` 和常规文件工具。无 Python、Docker、图形桌面、dialog 或 whiptail 运行依赖。Python 仅用于开发测试。脚本会自动将已有的 Entware `/opt/bin`、`/opt/sbin` 加入 `PATH`，因此 Merlin 的非交互 DDNS 调用也能找到 `/opt/bin/jq`。
 
 先在路由器检查依赖；本项目不自动安装软件：
 
