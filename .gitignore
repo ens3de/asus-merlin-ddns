@@ -1,0 +1,8 @@
+cloudflare-ddns.conf
+cloudflare-ddns.state*
+cloudflare-ddns.stat*
+conf.d/*.json
+conf.d.lock/
+*.log
+__pycache__/
+.DS_Store
