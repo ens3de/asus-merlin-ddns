@@ -25,8 +25,8 @@ init_require() {
 }
 init_package_for() {
     case "$1" in
-        jq) printf '%s\n' jq ;;
-        curl) printf '%s\n' curl ;;
+        jq) printf '%s\n' jq-full ;;
+        curl) printf '%s\n' libcurl ;;
         mktemp) printf '%s\n' coreutils-mktemp ;;
         cksum) printf '%s\n' coreutils-cksum ;;
         *) return 1 ;;
