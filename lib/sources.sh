@@ -103,7 +103,7 @@ resolve_http() (
     url=$(printf '%s' "$source" | jq -r '.url')
     timeout=$(printf '%s' "$source" | jq -r --arg default "$HTTP_TIMEOUT_SECONDS" '.timeout_seconds // ($default|tonumber)')
     if [ "$family" = A ]; then flag=-4; else flag=-6; fi
-    response=$(curl -q -fsS "$flag" --connect-timeout "$HTTP_CONNECT_TIMEOUT_SECONDS" \
+    response=$("$CURL_BIN" -q -fsS "$flag" --connect-timeout "$HTTP_CONNECT_TIMEOUT_SECONDS" \
         --max-time "$timeout" --max-filesize 65536 --url "$url" \
         --write-out '\n__DDNS_HTTP__%{http_code}' 2>/dev/null) || {
         log error 'HTTP address lookup failed'; exit 1;

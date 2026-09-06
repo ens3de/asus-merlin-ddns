@@ -12,7 +12,7 @@ cloudflare_api() (
     # Secret goes through stdin, not argv. Never log curl config or API bodies.
     response=$(
         printf 'header = "Authorization: Bearer %s"\n' "$CF_API_TOKEN" |
-            curl -q --config - --silent --show-error \
+            "$CURL_BIN" -q --config - --silent --show-error \
                 --connect-timeout "$HTTP_CONNECT_TIMEOUT_SECONDS" --max-time "$HTTP_TIMEOUT_SECONDS" \
                 --request "$method" --header 'Content-Type: application/json' \
                 --url "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID${endpoint:+/$endpoint}" \

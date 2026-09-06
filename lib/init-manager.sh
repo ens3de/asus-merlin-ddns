@@ -6,6 +6,8 @@ umask 077
 # Do not rely on the parent launcher retaining its PATH while sourcing us.
 PATH="${PATH:-/sbin:/bin:/usr/sbin:/usr/bin}:/opt/bin:/opt/sbin"
 export PATH
+CURL_BIN=${CURL_BIN:-curl}
+[ ! -x /usr/sbin/curl ] || CURL_BIN=/usr/sbin/curl
 CONFIG_FILE=${CONFIG_FILE:-"$SCRIPT_DIR/cloudflare-ddns.conf"}
 if [ "${1:-}" = --config ]; then
     [ "$#" -eq 2 ] || { printf '%s\n' 'Usage: cloudflare-ddns init [--config FILE]' >&2; exit 2; }
@@ -106,7 +108,7 @@ init_page=1
 while :; do
     init_response=$(
         printf 'header = "Authorization: Bearer %s"\n' "$init_token" |
-            curl -q --config - --silent --show-error --connect-timeout 5 --max-time 15 \
+            "$CURL_BIN" -q --config - --silent --show-error --connect-timeout 5 --max-time 15 \
                 --url "https://api.cloudflare.com/client/v4/zones?per_page=50&page=$init_page" \
                 --write-out '\n__DDNS_HTTP__%{http_code}' 2>/dev/null
     ) || init_die 'Could not query Cloudflare Zones'

@@ -18,6 +18,8 @@ ensure_entware_path() {
     PATH="${PATH:-/sbin:/bin:/usr/sbin:/usr/bin}:/opt/bin:/opt/sbin"
     export PATH
 }
+CURL_BIN=${CURL_BIN:-curl}
+[ ! -x /usr/sbin/curl ] || CURL_BIN=/usr/sbin/curl
 require_tools() (
     for tool do has_command "$tool" || { log error "Missing dependency: $tool"; exit 1; }; done
 )
