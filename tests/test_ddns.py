@@ -372,7 +372,7 @@ class DDNS(unittest.TestCase):
 
     def test_wizard_can_create_cloudflare_record_without_entering_id(self):
         # Existing names occupy 1-2; choose final item 3, then enter only a host label.
-        answers = "3\nnew\n2\n2\nbr0\nyes\n"
+        answers = "3\nnew\n2\n2\n1\nyes\n"
         result = self.run_script("add", manager=True, input=answers)
         self.assertIn("选择序号:", result.stderr)
         self.assertNotIn("选择序号 [1]", result.stderr)
