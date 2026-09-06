@@ -14,12 +14,7 @@ die() { log error "$*"; exit 2; }
 ensure_entware_path() {
     # A trusted common configuration may set PATH. Restore Entware's standard
     # locations afterwards because Merlin's non-interactive hooks omit them.
-    for entware_dir in /opt/bin /opt/sbin; do
-        [ ! -d "$entware_dir" ] || case ":${PATH:-}:" in
-            *:"$entware_dir":*) ;;
-            *) PATH="$entware_dir${PATH:+:$PATH}" ;;
-        esac
-    done
+    PATH="/opt/bin:/opt/sbin:${PATH:-/sbin:/bin:/usr/sbin:/usr/bin}"
     export PATH
 }
 require_tools() (

@@ -5,14 +5,10 @@ umask 077
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 1
 LIB_DIR="$SCRIPT_DIR/lib"
 
-# Merlin's non-interactive DDNS hook commonly omits Entware from PATH.  Add
-# its standard directories when present so jq/curl installed under /opt work
-# the same way as they do in an interactive SSH session.
-for DDNS_ENTWARE_DIR in /opt/bin /opt/sbin; do
-    case ":${PATH:-}:" in *:"$DDNS_ENTWARE_DIR":*) ;; *)
-        [ ! -d "$DDNS_ENTWARE_DIR" ] || PATH="$DDNS_ENTWARE_DIR${PATH:+:$PATH}" ;;
-    esac
-done
+# Merlin's non-interactive DDNS hook commonly omits Entware from PATH.  Keep
+# Entware first even when /opt is not mounted: a nonexistent PATH entry is
+# harmless, while conditional detection has varied across BusyBox environments.
+PATH="/opt/bin:/opt/sbin:${PATH:-/sbin:/bin:/usr/sbin:/usr/bin}"
 export PATH
 
 # One public entry point: a literal first argument of "config" enters the
