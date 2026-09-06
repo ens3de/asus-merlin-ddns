@@ -15,7 +15,7 @@ die() { log error "$*"; exit 2; }
 ensure_entware_path() {
     # A trusted common configuration may set PATH. Restore Entware's standard
     # locations afterwards because Merlin's non-interactive hooks omit them.
-    PATH="/opt/bin:/opt/sbin:${PATH:-/sbin:/bin:/usr/sbin:/usr/bin}"
+    PATH="${PATH:-/sbin:/bin:/usr/sbin:/usr/bin}:/opt/bin:/opt/sbin"
     export PATH
 }
 require_tools() (

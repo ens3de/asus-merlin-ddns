@@ -4,7 +4,7 @@ set -f
 umask 077
 # Keep init self-contained when it is run from Merlin's restricted DDNS hook.
 # Do not rely on the parent launcher retaining its PATH while sourcing us.
-PATH="/opt/bin:/opt/sbin:${PATH:-/sbin:/bin:/usr/sbin:/usr/bin}"
+PATH="${PATH:-/sbin:/bin:/usr/sbin:/usr/bin}:/opt/bin:/opt/sbin"
 export PATH
 CONFIG_FILE=${CONFIG_FILE:-"$SCRIPT_DIR/cloudflare-ddns.conf"}
 if [ "${1:-}" = --config ]; then

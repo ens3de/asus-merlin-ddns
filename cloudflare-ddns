@@ -6,9 +6,9 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 1
 LIB_DIR="$SCRIPT_DIR/lib"
 
 # Merlin's non-interactive DDNS hook commonly omits Entware from PATH.  Keep
-# Entware first even when /opt is not mounted: a nonexistent PATH entry is
-# harmless, while conditional detection has varied across BusyBox environments.
-PATH="/opt/bin:/opt/sbin:${PATH:-/sbin:/bin:/usr/sbin:/usr/bin}"
+# Keep Merlin's native curl first; append Entware to supply jq when the base
+# firmware does not. A nonexistent /opt entry is harmless.
+PATH="${PATH:-/sbin:/bin:/usr/sbin:/usr/bin}:/opt/bin:/opt/sbin"
 export PATH
 
 # One public entry point: a literal first argument of "config" enters the

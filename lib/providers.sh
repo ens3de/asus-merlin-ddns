@@ -31,7 +31,9 @@ cloudflare_record() { cloudflare_api "$1" "dns_records/$2" "${3:-}" object; }
 provider_get_record() (
     provider=$1; id=$2
     case "$provider" in
-        cloudflare) cloudflare_record GET "$id" | jq -c '{id,name,type,content,proxied:(.proxied//false),ttl:(.ttl//1)}' ;;
+        cloudflare)
+            record=$(cloudflare_record GET "$id") || exit 1
+            printf '%s' "$record" | jq -c '{id,name,type,content,proxied:(.proxied//false),ttl:(.ttl//1)}' ;;
         *) log error 'Unsupported DNS provider'; exit 1 ;;
     esac
 )
@@ -40,7 +42,8 @@ provider_zone_name() (
     provider=$1
     case "$provider" in
         cloudflare)
-            zone=$(cloudflare_api GET '' '' object | jq -r '.name // empty') || exit 1
+            zone_result=$(cloudflare_api GET '' '' object) || exit 1
+            zone=$(printf '%s' "$zone_result" | jq -r '.name // empty') || exit 1
             valid_domain_name "$zone" || { log error 'Cloudflare returned an invalid Zone name'; exit 1; }
             printf '%s\n' "$zone" | jq -Rr 'ascii_downcase|rtrimstr(".")'
             ;;
@@ -54,8 +57,8 @@ provider_list_domain_names() (
         cloudflare)
             # Request 5,000 records in one page (below Cloudflare's documented
             # maximum). This is ample here; fail closed on an invalid response.
-            cloudflare_api GET 'dns_records?per_page=5000&page=1' '' array |
-                jq -c --arg zone "$zone" '[.[]
+            records=$(cloudflare_api GET 'dns_records?per_page=5000&page=1' '' array) || exit 1
+            printf '%s' "$records" | jq -c --arg zone "$zone" '[.[]
                     | select(.type == "A" or .type == "AAAA") | .name
                     | ascii_downcase | rtrimstr(".")
                     | select(. == $zone or endswith("." + $zone))] | unique'
@@ -69,8 +72,8 @@ provider_list_records() (
     case "$provider" in
         cloudflare)
             # name/family have already passed the strict record schema.
-            cloudflare_api GET "dns_records?type=$family&name=$name&per_page=100" '' array |
-                jq -c '[.[] | {id,name,type,content,proxied:(.proxied // false)}]'
+            records=$(cloudflare_api GET "dns_records?type=$family&name=$name&per_page=100" '' array) || exit 1
+            printf '%s' "$records" | jq -c '[.[] | {id,name,type,content,proxied:(.proxied // false)}]'
             ;;
         *) log error 'Unsupported DNS provider'; exit 1 ;;
     esac
