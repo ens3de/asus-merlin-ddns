@@ -11,6 +11,17 @@ log() (
     fi
 )
 die() { log error "$*"; exit 2; }
+ensure_entware_path() {
+    # A trusted common configuration may set PATH. Restore Entware's standard
+    # locations afterwards because Merlin's non-interactive hooks omit them.
+    for entware_dir in /opt/bin /opt/sbin; do
+        [ ! -d "$entware_dir" ] || case ":${PATH:-}:" in
+            *:"$entware_dir":*) ;;
+            *) PATH="$entware_dir${PATH:+:$PATH}" ;;
+        esac
+    done
+    export PATH
+}
 require_tools() (
     for tool do command -v "$tool" >/dev/null 2>&1 || { log error "Missing dependency: $tool"; exit 1; }; done
 )
@@ -29,6 +40,7 @@ load_settings() {
     # The .conf is trusted executable shell. JSON is never sourced.
     # shellcheck disable=SC1090
     . "$CONFIG_FILE" || { log error 'Common configuration could not be loaded'; return 1; }
+    ensure_entware_path
     CONF_DIR=${CONF_DIR:-"$SCRIPT_DIR/conf.d"}
     STATE_FILE=${STATE_FILE:-"$SCRIPT_DIR/cloudflare-ddns.state"}
     LOCK_DIR="${CONF_DIR}.lock"
