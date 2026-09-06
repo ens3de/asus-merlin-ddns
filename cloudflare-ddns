@@ -5,8 +5,8 @@ umask 077
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 1
 LIB_DIR="$SCRIPT_DIR/lib"
 
-# Merlin's non-interactive DDNS hook commonly omits Entware from PATH.  Keep
-# Keep Merlin's native curl first; append Entware to supply jq when the base
+# Merlin's non-interactive DDNS hook commonly omits Entware from PATH. Keep
+# Merlin's native curl first; append Entware to supply jq when the base
 # firmware does not. A nonexistent /opt entry is harmless.
 PATH="${PATH:-/sbin:/bin:/usr/sbin:/usr/bin}:/opt/bin:/opt/sbin"
 export PATH
@@ -14,6 +14,7 @@ export PATH
 # One public entry point: a literal first argument of "config" enters the
 # configuration manager. Keeping the implementation in a module avoids mixing
 # interactive state with the non-interactive updater while shipping one CLI.
+DEBUG_OUTPUT=0
 case "${1:-}" in
     config)
         shift
@@ -26,6 +27,9 @@ case "${1:-}" in
         # shellcheck disable=SC1090
         . "$LIB_DIR/init-manager.sh"
         exit $? ;;
+    debug)
+        DEBUG_OUTPUT=1
+        shift ;;
 esac
 
 . "$LIB_DIR/common.sh"
@@ -40,6 +44,7 @@ CONFIG_FILE=${CONFIG_FILE:-"$SCRIPT_DIR/cloudflare-ddns.conf"}
 usage() {
     printf '%s\n' 'Usage: cloudflare-ddns init [--config FILE]' \
         '       cloudflare-ddns config [--config FILE] [COMMAND]' \
+        '       cloudflare-ddns debug [--config FILE] [--task NAME] [--ipv4 ADDRESS] [--ipv6 ADDRESS]' \
         '       cloudflare-ddns [--config FILE] [--check|--dry-run] [--task NAME]' \
         '                       [--ipv4 ADDRESS] [--ipv6 ADDRESS] [Merlin-IP]' \
         'init: interactively create the common configuration and select a Cloudflare Zone.' \
@@ -69,7 +74,15 @@ while [ "$#" -gt 0 ]; do
             case "$1" in *:*) ARG_IPV6=$1 ;; *) ARG_IPV4=$1 ;; esac; shift ;;
     esac
 done
+if [ "$MODE" = update ] && [ "$DEBUG_OUTPUT" -eq 0 ]; then
+    # Merlin consumes success/failure through ddns_custom_updated; keep its
+    # DDNS invocation silent and retain diagnostics in syslog/LOG_FILE.
+    DDNS_QUIET=1
+else
+    DDNS_QUIET=0
+fi
 load_settings || exit 2
+[ "$DEBUG_OUTPUT" -eq 0 ] || LOG_LEVEL=debug
 require_tools jq mktemp || exit 2
 [ -z "$SELECT_TASK" ] || valid_task_name "$SELECT_TASK" || die 'Invalid task name'
 WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/ddns-run.XXXXXX") || exit 1

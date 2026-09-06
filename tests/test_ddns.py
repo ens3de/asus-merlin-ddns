@@ -150,6 +150,19 @@ class DDNS(unittest.TestCase):
         self.assertEqual(self.calls(), [])
         self.assertFalse((self.root / "state.json").exists())
 
+    def test_normal_update_is_silent_but_debug_shows_record_progress(self):
+        self.put()
+        normal = self.run_script()
+        self.assertEqual(normal.stdout, "")
+        self.assertEqual(normal.stderr, "")
+
+        debug = subprocess.run(
+            [SHELL, str(PROJECT / "cloudflare-ddns"), "debug", "--config", str(self.settings)],
+            env=self.env, capture_output=True, text=True, errors="replace", timeout=30)
+        self.assertEqual(debug.returncode, 0, debug.stderr + debug.stdout)
+        self.assertEqual(debug.stdout, "")
+        self.assertIn("wg.example.com/AAAA", debug.stderr)
+
     def test_independent_sources_and_cache(self):
         self.put()
         router = record("router.example.com", "r4", "A", {"type": "interface", "interface": "ppp0"})

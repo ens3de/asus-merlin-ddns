@@ -4,7 +4,8 @@ has_command() { type "$1" >/dev/null 2>&1; }
 log() (
     level=$1; shift
     case "${LOG_LEVEL:-info}:$level" in error:info|error:debug|info:debug) exit 0 ;; esac
-    printf '%s [%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$level" "$*" >&2
+    [ "${DDNS_QUIET:-0}" = 1 ] ||
+        printf '%s [%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$level" "$*" >&2
     if [ -n "${LOG_FILE:-}" ]; then
         printf '%s [%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$level" "$*" >> "$LOG_FILE"
     elif has_command logger; then
