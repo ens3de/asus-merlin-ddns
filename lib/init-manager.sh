@@ -8,6 +8,9 @@ PATH="${PATH:-/sbin:/bin:/usr/sbin:/usr/bin}:/opt/bin:/opt/sbin"
 export PATH
 CURL_BIN=${CURL_BIN:-curl}
 [ ! -x /usr/sbin/curl ] || CURL_BIN=/usr/sbin/curl
+# The launcher loads init before the other modules; load the shared temporary
+# path helpers explicitly so init remains independent of external mktemp.
+. "$LIB_DIR/common.sh"
 CONFIG_FILE=${CONFIG_FILE:-"$SCRIPT_DIR/cloudflare-ddns.conf"}
 if [ "${1:-}" = --config ]; then
     [ "$#" -eq 2 ] || { printf '%s\n' 'Usage: cloudflare-ddns init [--config FILE]' >&2; exit 2; }
@@ -27,14 +30,13 @@ init_package_for() {
     case "$1" in
         jq) printf '%s\n' jq-full ;;
         curl) printf '%s\n' libcurl ;;
-        mktemp) printf '%s\n' coreutils-mktemp ;;
         cksum) printf '%s\n' coreutils-cksum ;;
         *) return 1 ;;
     esac
 }
 init_install_missing_dependencies() {
     init_missing_packages=
-    for init_tool in jq "$CURL_BIN" mktemp cksum; do
+    for init_tool in jq "$CURL_BIN" cksum; do
         init_has_command "$init_tool" && continue
         # CURL_BIN is either curl or /usr/sbin/curl; only the former is installable.
         [ "$init_tool" = "$CURL_BIN" ] && init_tool=curl
@@ -50,7 +52,7 @@ init_install_missing_dependencies() {
     for init_package in $init_missing_packages; do
         opkg install "$init_package" || init_die "Failed to install Entware package: $init_package"
     done
-    init_require jq "$CURL_BIN" mktemp cksum
+    init_require jq "$CURL_BIN" cksum
 }
 init_ask() (
     printf '%s [%s]: ' "$1" "$2" >&2
@@ -86,7 +88,7 @@ init_shell_quote() (
 )
 
 init_install_missing_dependencies
-init_require jq "$CURL_BIN" mktemp cksum grep sed mkdir chmod mv dirname
+init_require jq "$CURL_BIN" cksum grep sed mkdir chmod mv dirname
 [ "$CONFIG_FILE" != / ] && [ -n "$CONFIG_FILE" ] && [ ! -L "$CONFIG_FILE" ] || init_die 'Unsafe configuration path'
 init_parent=$(dirname -- "$CONFIG_FILE")
 [ -d "$init_parent" ] || init_die 'Configuration directory does not exist'
@@ -209,7 +211,7 @@ done
 [ -n "$init_conf_dir" ] && [ "$init_conf_dir" != / ] && [ ! -L "$init_conf_dir" ] || init_die 'Unsafe CONF_DIR'
 [ -n "$init_state" ] && [ "$init_state" != / ] && [ ! -L "$init_state" ] || init_die 'Unsafe STATE_FILE'
 
-init_candidate=$(mktemp "$init_parent/.cloudflare-ddns.conf.XXXXXX") || exit 1
+init_candidate=$(make_temp_file "$init_parent" cloudflare-ddns-conf) || exit 1
 init_candidate_live=1
 init_cleanup() {
     [ "${init_candidate_live:-0}" -eq 0 ] || rm -f -- "$init_candidate"

@@ -24,6 +24,44 @@ CURL_BIN=${CURL_BIN:-curl}
 require_tools() (
     for tool do has_command "$tool" || { log error "Missing dependency: $tool"; exit 1; }; done
 )
+# Merlin's BusyBox build has no mktemp applet, and some Entware coreutils
+# builds are not reliable on its old kernel.  Create names ourselves instead.
+# mkdir is atomic; files use the shell's noclobber create with mode 0600.
+temp_seed() (
+    attempt=$1
+    {
+        [ ! -r /dev/urandom ] || dd if=/dev/urandom bs=16 count=1 2>/dev/null
+        printf '%s:%s:%s\n' "$$" "$attempt" "$(date +%s 2>/dev/null || date)"
+    } | cksum | awk '{print $1}'
+)
+make_temp_dir() (
+    parent=$1; label=$2; attempt=0
+    [ -d "$parent" ] || exit 1
+    umask 077
+    while [ "$attempt" -lt 100 ]; do
+        seed=$(temp_seed "$attempt") || exit 1
+        path="$parent/.${label}.${seed}.${attempt}"
+        if mkdir "$path" 2>/dev/null; then printf '%s\n' "$path"; exit 0; fi
+        attempt=$((attempt + 1))
+    done
+    exit 1
+)
+make_temp_file() (
+    parent=$1; label=$2; attempt=0
+    [ -d "$parent" ] || exit 1
+    umask 077
+    while [ "$attempt" -lt 100 ]; do
+        seed=$(temp_seed "$attempt") || exit 1
+        path="$parent/.${label}.${seed}.${attempt}"
+        if (set -C; : > "$path") 2>/dev/null; then
+            chmod 600 "$path" || { rm -f -- "$path"; exit 1; }
+            printf '%s\n' "$path"
+            exit 0
+        fi
+        attempt=$((attempt + 1))
+    done
+    exit 1
+)
 valid_task_name() {
     # A task is a DNS name, and its exact canonical name is its filename.
     valid_domain_name "$1" && case "$1" in \*.*|*.) return 1 ;; *) return 0 ;; esac
@@ -72,7 +110,7 @@ validate_record() (
 validate_directory() (
     dir=$1
     [ -d "$dir" ] || { log error "Missing conf.d directory: $dir"; exit 1; }
-    list=$(mktemp "${TMPDIR:-/tmp}/ddns-validation.XXXXXX") || exit 1
+    list=$(make_temp_file "${TMPDIR:-/tmp}" ddns-validation) || exit 1
     trap 'rm -f -- "$list"' 0
     set +f
     for file in "$dir"/*.json; do
@@ -131,7 +169,7 @@ state_store() (
     parent=$(dirname -- "$STATE_FILE")
     [ -d "$parent" ] || { log error 'State directory does not exist'; exit 1; }
     [ ! -L "$STATE_FILE" ] || { log error 'State file must not be a symlink'; exit 1; }
-    temporary=$(mktemp "$parent/.ddns-state.XXXXXX") || exit 1
+    temporary=$(make_temp_file "$parent" ddns-state) || exit 1
     trap 'rm -f -- "$temporary"' 0
     jq --arg k "$key" --arg ip "$address" --argjson now "$(date +%s)" \
         '.[$k]={ip:$ip,updated_at:$now}' "$snapshot" > "$temporary" &&

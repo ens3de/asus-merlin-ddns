@@ -32,7 +32,9 @@ class DDNS(unittest.TestCase):
         self.confdir.mkdir()
         self.bindir = self.root / "bin"
         self.bindir.mkdir()
-        for name in ["ip", "curl", "logger"]:
+        # A failing mktemp placed first in PATH proves the project never
+        # regresses to the incompatible Entware utility on Merlin.
+        for name in ["ip", "curl", "logger", "mktemp"]:
             target = self.bindir / name
             shutil.copyfile(PROJECT / "tests/mock-command.py", target)
             target.chmod(0o700)

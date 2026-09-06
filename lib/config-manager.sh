@@ -22,9 +22,9 @@ if [ "${1:-}" = --help ]; then
     exit 0
 fi
 load_settings || exit 2
-require_tools jq mktemp cksum || exit 2
+require_tools jq cksum || exit 2
 mkdir -p "$CONF_DIR" || exit 1
-WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/ddns-manager.XXXXXX") || exit 1
+WORK_DIR=$(make_temp_dir "${TMPDIR:-/tmp}" ddns-manager) || exit 1
 LOCK_HELD=0
 cleanup() {
     [ "$LOCK_HELD" -eq 0 ] || release_config_lock
@@ -201,12 +201,12 @@ commit_record() (
         }
     fi
     validate_directory "$CONF_DIR" || exit 1
-    stage=$(mktemp -d "${TMPDIR:-/tmp}/ddns-stage.XXXXXX") || exit 1
+    stage=$(make_temp_dir "$WORK_DIR" ddns-stage) || exit 1
     set +f
     for file in "$CONF_DIR"/*.json; do [ ! -f "$file" ] || cp "$file" "$stage/" || exit 1; done
     jq -c . "$candidate" > "$stage/$task.json" || exit 1
     validate_directory "$stage" || exit 1
-    temporary=$(mktemp "$CONF_DIR/.$task.XXXXXX") || exit 1
+    temporary=$(make_temp_file "$CONF_DIR" "$task") || exit 1
     cp "$stage/$task.json" "$temporary" && chmod 600 "$temporary" && mv -f -- "$temporary" "$destination" || exit 1
     printf '已保存 %s（紧凑 JSON）。启用的任务将在下次 DDNS 执行时生效。\n' "$task"
 )
@@ -421,7 +421,7 @@ apply_pending_records() (
         name=$(printf '%s' "$entry" | jq -r '.name')
         content=$(printf '%s' "$entry" | jq -r '.content')
         id=$(provider_create_record cloudflare "$name" "$family" "$content") || exit 1
-        updated=$(mktemp "$WORK_DIR/candidate-update.XXXXXX") || exit 1
+        updated=$(make_temp_file "$WORK_DIR" candidate-update) || exit 1
         jq -c --arg family "$family" --arg id "$id" '.[$family].id=$id' "$candidate" > "$updated" || exit 1
         mv -f -- "$updated" "$candidate" || exit 1
     done
@@ -461,10 +461,10 @@ wizard() (
                 current=$(printf '%s' "$current" | jq -c --arg f "$family" 'del(.[$f])') || exit 1 ;;
         esac
     done
-    candidate=$(mktemp "$WORK_DIR/candidate.XXXXXX") || exit 1
+    candidate=$(make_temp_file "$WORK_DIR" candidate) || exit 1
     printf '%s\n' "$current" > "$candidate"
     validate_record "$candidate" || exit 1
-    plan=$(mktemp "$WORK_DIR/dns-plan.XXXXXX") || exit 1
+    plan=$(make_temp_file "$WORK_DIR" dns-plan) || exit 1
     prepare_dns_plan "$candidate" "$plan" || exit 1
     show_save_preview "$candidate" "$plan"
     confirm '应用以上配置和 DNS 计划？' || exit 1
@@ -477,7 +477,7 @@ set_enabled() (
     task=$1; enabled=$2
     file=$(existing_task "$task") || exit 1
     expected=$(fingerprint "$file")
-    candidate=$(mktemp "$WORK_DIR/candidate.XXXXXX") || exit 1
+    candidate=$(make_temp_file "$WORK_DIR" candidate) || exit 1
     jq -c --argjson enabled "$enabled" '.enabled=$enabled' "$file" > "$candidate" || exit 1
     [ "$(fingerprint "$file")" = "$expected" ] || exit 1
     if [ "$enabled" = true ]; then
@@ -513,7 +513,7 @@ dispatch() {
         import)
             [ "$#" -eq 3 ] || { log error 'Usage: import TASK FILE'; return 1; }
             validate_record "$3" || return 1
-            candidate=$(mktemp "$WORK_DIR/import.XXXXXX") || return 1
+            candidate=$(make_temp_file "$WORK_DIR" import) || return 1
             jq -c '.enabled=false' "$3" > "$candidate" || return 1
             commit_record "$2" "$candidate" NEW ;;
         *) log error 'Unknown command; use --help'; return 2 ;;
