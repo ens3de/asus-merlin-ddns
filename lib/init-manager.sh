@@ -23,6 +23,35 @@ init_has_command() { type "$1" >/dev/null 2>&1; }
 init_require() {
     for init_tool do init_has_command "$init_tool" || init_die "Missing dependency: $init_tool"; done
 }
+init_package_for() {
+    case "$1" in
+        jq) printf '%s\n' jq ;;
+        curl) printf '%s\n' curl ;;
+        mktemp) printf '%s\n' coreutils-mktemp ;;
+        cksum) printf '%s\n' coreutils-cksum ;;
+        *) return 1 ;;
+    esac
+}
+init_install_missing_dependencies() {
+    init_missing_packages=
+    for init_tool in jq "$CURL_BIN" mktemp cksum; do
+        init_has_command "$init_tool" && continue
+        # CURL_BIN is either curl or /usr/sbin/curl; only the former is installable.
+        [ "$init_tool" = "$CURL_BIN" ] && init_tool=curl
+        init_package=$(init_package_for "$init_tool") || init_die "Missing unsupported dependency: $init_tool"
+        case " $init_missing_packages " in *" $init_package "*) ;; *)
+            init_missing_packages="$init_missing_packages $init_package" ;;
+        esac
+    done
+    [ -z "$init_missing_packages" ] && return 0
+    init_has_command opkg || init_die "Missing: $init_missing_packages. Install Entware/opkg first."
+    printf '缺少依赖，将更新 Entware 软件索引并安装：%s\n' "$init_missing_packages" >&2
+    opkg update || init_die 'Entware package index update failed; dependencies were not installed'
+    for init_package in $init_missing_packages; do
+        opkg install "$init_package" || init_die "Failed to install Entware package: $init_package"
+    done
+    init_require jq "$CURL_BIN" mktemp cksum
+}
 init_ask() (
     printf '%s [%s]: ' "$1" "$2" >&2
     IFS= read -r init_answer || exit 1
@@ -56,7 +85,8 @@ init_shell_quote() (
     printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
 )
 
-init_require jq curl mktemp grep sed mkdir chmod mv dirname
+init_install_missing_dependencies
+init_require jq "$CURL_BIN" mktemp cksum grep sed mkdir chmod mv dirname
 [ "$CONFIG_FILE" != / ] && [ -n "$CONFIG_FILE" ] && [ ! -L "$CONFIG_FILE" ] || init_die 'Unsafe configuration path'
 init_parent=$(dirname -- "$CONFIG_FILE")
 [ -d "$init_parent" ] || init_die 'Configuration directory does not exist'
