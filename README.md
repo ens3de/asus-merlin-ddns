@@ -86,7 +86,7 @@ sh ./cloudflare-ddns debug                      # 手动更新并在终端显示
 
 配置管理模块没有独立命令入口，只能通过 `cloudflare-ddns config` 调用。新增时不要求输入任务名，所选域名就是唯一标识和文件名，例如 `wg.ens3.de` 对应 `conf.d/wg.ens3.de.json`。修改、启用、停用和删除省略域名时都会显示已有配置并按序号选择。它不会要求输入 Cloudflare Record ID、启动编辑器或要求手工编辑 JSON。
 
-普通 `cloudflare-ddns` 更新专供 Merlin 的 DDNS 事件调用：终端保持静默，诊断写入 syslog 或 `LOG_FILE`，并继续通过 `/sbin/ddns_custom_updated 0|1` 向固件报告结果。手动排查时使用 `cloudflare-ddns debug`，它会执行同一更新路径并在终端显示每条记录的更新/跳过/失败信息。Merlin 的自定义 DDNS 说明要求脚本调用 `ddns_custom_updated` 报告成功或失败；该通知而非文本输出是固件状态的依据。[官方说明](https://github.com/RMerl/asuswrt-merlin/wiki/Custom-DDNS)
+普通 `cloudflare-ddns` 更新专供 Merlin 的 DDNS 事件调用：终端保持静默，诊断写入 syslog 或 `LOG_FILE`，并继续通过 `/sbin/ddns_custom_updated 0|1` 向固件报告结果。手动排查时使用 `cloudflare-ddns debug`，它会执行同一更新路径并在终端显示每条记录的更新/跳过/失败信息。Merlin 的自定义 DDNS 说明要求脚本调用 `ddns_custom_updated` 报告成功或失败；该通知而非文本输出是固件状态的依据。官方文档路径：[`Custom-DDNS` Wiki](https://github.com/RMerl/asuswrt-merlin/wiki/Custom-DDNS)（`https://github.com/RMerl/asuswrt-merlin/wiki/Custom-DDNS`）。
 
 新增任务时，工具只从当前 Zone 的 A/AAAA 记录提取已有域名；CNAME、MX、TXT 等其他类型不会出现在域名选择列表。域名选择没有默认项，必须明确输入序号，最后一项始终是“新增域名”。选择新增后只输入相对主机名，例如输入 `abc` 会生成 `abc.ens3.de`；输入 `@` 表示 Zone 根域。为防止意外重复后缀，输入完整域名会被拒绝。
 
